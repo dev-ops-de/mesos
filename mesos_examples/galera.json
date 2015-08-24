@@ -1,0 +1,85 @@
+{
+    "id": "/galera",
+    "groups": [{
+        "id": "/galera/test",
+        "apps": [{
+            "id": "seed",
+            "container": {
+                "type": "DOCKER",
+                "docker": {
+                    "image": "sttts/galera-mariadb-10.0-xtrabackup",
+                    "network": "BRIDGE",
+                    "portMappings": [
+                        { "containerPort": 3306, "hostPort": "0", "protocol": "tcp" },
+                        { "containerPort": 8080, "hostPort": "0", "protocol": "tcp" }
+                    ]
+                },
+                "volumes": []
+            },
+            "env": {
+                "SERVICE_NAME": "galera",
+                "SERVICE_TAGS": "seed",
+                "XTRABACKUP_PASSWORD": "3240fd7as9f8798",
+                "MYSQL_ROOT_PASSWORD": "secret"
+            },
+            "args": [
+                "seed"
+            ],
+            "cpus": 0.5,
+            "mem": 512,
+            "instances": 1,
+            "maxLaunchDelaySeconds": 10,
+            "healthChecks": [{
+                "protocol": "HTTP",
+                "portIndex": 1,
+                "gracePeriodSeconds": 30,
+                "intervalSeconds": 5,
+                "maxConsecutiveFailures": 6,
+                "ignoreHttp1xx": true
+            }],
+            "upgradeStrategy": {
+                "minimumHealthCapacity": 0
+            }
+        }, {
+            "id": "node",
+            "container": {
+                "type": "DOCKER",
+                "docker": {
+                    "image": "sttts/galera-mariadb-10.0-xtrabackup",
+                    "network": "BRIDGE",
+                    "portMappings": [
+                        { "containerPort": 3306, "hostPort": "0", "protocol": "tcp" },
+                        { "containerPort": 8080, "hostPort": "0", "protocol": "tcp" }
+                    ]
+                },
+                "volumes": []
+            },
+            "env": {
+                "SERVICE_NAME": "galera",
+                "XTRABACKUP_PASSWORD": "3240fd7as9f8798",
+                "MYSQL_ROOT_PASSWORD": "secret"
+            },
+            "args": [
+                "node",
+                "galera.service.dc1.consul"
+            ],
+            "cpus": 1,
+            "mem": 512,
+            "instances": 0,
+            "maxLaunchDelaySeconds": 10,
+            "healthChecks": [{
+                "protocol": "HTTP",
+                "portIndex": 1,
+                "gracePeriodSeconds": 30,
+                "intervalSeconds": 5,
+                "maxConsecutiveFailures": 6,
+                "ignoreHttp1xx": true
+            }],
+            "upgradeStrategy": {
+                "minimumHealthCapacity": 0.8,
+                "maximumOverCapacity": 0.2
+            },
+            "dependencies": ["seed"]
+        }]
+    }]
+}

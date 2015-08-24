@@ -1,0 +1,92 @@
+- hosts: master
+  remote_user: vagrant
+  sudo: yes
+  tasks:
+      - name: update the hosts file
+        template: src=./hosts.j2 dest=/etc/hosts
+
+      - name: install the mesosphere yum repo
+        yum:  name=http://repos.mesosphere.io/el/7/noarch/RPMS/mesosphere-el-repo-7-1.noarch.rpm state=present
+
+      - name: install zookeeper repo
+        yum:  name=http://archive.cloudera.com/cdh4/one-click-install/redhat/6/x86_64/cloudera-cdh-4-0.x86_64.rpm state=present
+
+      - name: install zookeeper
+        yum: pkg=zookeeper,zookeeper-server state=latest
+
+      - name: configure zookeeper ID
+        shell: sudo -u zookeeper zookeeper-server-initialize --myid=1
+
+      - name: fix device mapper error in centos7 current version of docker in repo
+        shell: sudo yum update -y device-mapper
+
+      - name: install the mesos, marathon, chronos, docker packages
+        yum: pkg=mesos,marathon,chronos,docker state=latest
+
+      - name: start up zookeeper
+        service: name=zookeeper-server state=started enabled=yes
+
+      - name: start up the mesos-master
+        service: name=mesos-master state=started enabled=yes
+
+      - name: put docker to slave config
+        shell: echo 'docker,mesos' > /etc/mesos-slave/containerizers
+
+      - name: put docker to slave config
+        shell: echo '5mins' > /etc/mesos-slave/executor_registration_timeout
+
+      - name: make sure mesos-slave is running
+        service: name=mesos-slave state=started enabled=yes
+
+      - name: start marathon
+        service: name=marathon state=started enabled=yes
+
+      - name: start chronos
+        service: name=chronos state=started enabled=yes
+
+      - name: start docker
+        service: name=docker state=started enabled=yes
+
+      - name: install go and dns tools
+        yum: pkg=golang,git,bind-utils state=latest
+
+      - name: build mesos-dns
+        shell: sh /vagrant/vagrant/installdns.sh
+
+      - name: start consul service discovery server
+        shell: sudo docker run -it -d -h node -p 8500:8500 -p 53:53/udp progrium/consul -server -bootstrap -advertise 192.168.12.10
+
+
+- hosts: nodes
+  remote_user: vagrant
+  sudo: yes
+  tasks:
+      - name: update the hosts file
+        template: src=./hosts.j2 dest=/etc/hosts
+
+      - name: install the mesosphere yum repo
+        yum:  name=http://repos.mesosphere.io/el/7/noarch/RPMS/mesosphere-el-repo-7-1.noarch.rpm state=present
+
+      - name: fix device mapper error in centos7 current version of docker in repo
+        shell: sudo yum update -y device-mapper
+
+      - name: install the mesos and docker packages
+        yum: pkg=mesos,docker state=latest
+
+      - name: set the zookeeper master
+        shell: sed -i -e 's/localhost/192.168.12.10/g' /etc/mesos/zk
+
+      - name: put docker to slave config
+        shell: echo 'docker,mesos' > /etc/mesos-slave/containerizers
+
+      - name: put docker to slave config
+        shell: echo '5mins' > /etc/mesos-slave/executor_registration_timeout
+
+      - name: make sure mesos-slave is running
+        service: name=mesos-slave state=started enabled=yes
+
+      - name: start docker
+        service: name=docker state=started enabled=yes
+
+      - name: start consul registrator client
+        shell: sudo docker run -d --privileged --name=registrator --net=host --volume=/var/run/docker.sock:/tmp/docker.sock gliderlabs/registrator:latest consul://192.168.12.10:8500

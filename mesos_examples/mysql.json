@@ -1,0 +1,14 @@
+{
+  "id": "/mysql",
+  "ports": [0,0],
+  "cpus": 2,
+  "mem": 128.0,
+  "disk": 500.0,
+  "container": {
+    "type": "DOCKER",
+    "docker": {
+      "network": "HOST",
+      "image": "mysql/mysql-server:5.7"
+    }
+  }
+}
