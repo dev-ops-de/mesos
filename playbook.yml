@@ -20,6 +20,9 @@
       - name: fix device mapper error in centos7 current version of docker in repo
         shell: sudo yum update -y device-mapper
 
+      - name: install common packages
+        yum: pkg=vim,telnet,lsof state=latest
+
       - name: install the mesos, marathon, chronos, docker packages
         yum: pkg=mesos,marathon,chronos,docker state=latest
 
@@ -69,6 +72,9 @@
 
       - name: fix device mapper error in centos7 current version of docker in repo
         shell: sudo yum update -y device-mapper
+
+      - name: install common packages
+        yum: pkg=vim,telnet,lsof state=latest
 
       - name: install the mesos and docker packages
         yum: pkg=mesos,docker state=latest
