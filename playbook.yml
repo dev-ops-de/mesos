@@ -96,3 +96,25 @@
 
       - name: start consul registrator client
         shell: sudo docker run -d --privileged --name=registrator --net=host --volume=/var/run/docker.sock:/tmp/docker.sock gliderlabs/registrator:latest consul://192.168.12.10:8500
+
+- hosts: lb
+  remote_user: vagrant
+  sudo: yes
+  tasks:
+      - name: update the hosts file
+        template: src=./hosts.j2 dest=/etc/hosts
+
+      - name: fix device mapper error in centos7 current version of docker in repo
+        shell: sudo yum update -y device-mapper
+
+      - name: install common packages
+        yum: pkg=vim,telnet,lsof state=latest
+
+      - name: install the mesosphere yum repo
+        yum:  name=http://repos.mesosphere.io/el/7/noarch/RPMS/mesosphere-el-repo-7-1.noarch.rpm state=present
+
+      - name: install docker packages
+        yum: pkg=docker state=latest
+
+      - name: start docker
+        service: name=docker state=started enabled=yes
